@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f45b35">
+<title>Pepper Chat</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--pepper:#f45b35;--dark:#20232b;--muted:#777d8a;--bg:#f4f5f8;--line:#e8e9ee}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--dark)}
+button,input{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:11px 15px;font-weight:700}
+.primary{background:var(--pepper);color:white}.soft{background:#fff0eb;color:#c94321}.hidden{display:none!important}
+.brand{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:900;letter-spacing:-.8px}.pepper{width:36px;height:36px;background:var(--pepper);color:#fff;border-radius:12px;display:grid;place-items:center;font-size:22px}
+.auth-wrap{min-height:100vh;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 15% 10%,#ffe1d7,transparent 32%),radial-gradient(circle at 90% 90%,#ffede6,transparent 28%),var(--bg)}
+.auth-card{background:#fff;width:min(420px,100%);padding:30px;border-radius:24px;box-shadow:0 18px 60px #252b3b12}.auth-card h1{margin:22px 0 6px;font-size:27px}.sub{color:var(--muted);margin:0 0 22px}.field{display:block;width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;margin:9px 0 14px;outline:none;background:#fff}.field:focus{border-color:var(--pepper);box-shadow:0 0 0 3px #f45b351c}.wide{width:100%}.switch{margin-top:18px;text-align:center;color:var(--muted);font-size:14px}.link{color:#d94a28;background:none;padding:0}.error{color:#b3261e;background:#fff0ef;border-radius:10px;padding:10px;font-size:13px;margin:10px 0}.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.app{height:100dvh;display:grid;grid-template-columns:320px minmax(0,1fr);max-width:1300px;margin:auto;background:#fff;box-shadow:0 0 50px #252b3b0a}.sidebar{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}.side-top{padding:22px 18px 14px}.side-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.profile-mini{display:flex;gap:10px;align-items:center;min-width:0}.avatar{width:42px;height:42px;flex:0 0 42px;border-radius:15px;background:#ffe3d9;color:#c94321;display:grid;place-items:center;font-weight:900}.small{font-size:12px;color:var(--muted);margin-top:3px}.search{width:100%;border:0;background:#f4f5f8;padding:12px 13px;border-radius:12px;outline:none}.section-label{padding:14px 18px 8px;font-size:11px;font-weight:900;letter-spacing:1px;color:#999eaa}.user-list{overflow:auto;padding:0 8px 12px}.user-item{display:flex;gap:11px;align-items:center;padding:11px 10px;border-radius:14px;width:100%;background:#fff;text-align:left;color:var(--dark);margin-bottom:3px}.user-item:hover,.user-item.active{background:#fff0eb}.user-item .details{min-width:0;flex:1}.user-item strong,.user-item .preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.preview{font-size:12px;color:var(--muted);margin-top:4px;font-weight:400}
+.main{min-width:0;display:flex;flex-direction:column;background:#fff}.welcome{height:100%;display:grid;place-items:center;text-align:center;padding:30px}.welcome-emoji{font-size:54px}.welcome h2{margin:10px 0 5px}.welcome p{max-width:340px;color:var(--muted);line-height:1.5}.chat-head{display:flex;align-items:center;gap:12px;padding:17px 22px;border-bottom:1px solid var(--line)}.chat-head .name{font-weight:850}.chat-head .status{font-size:12px;color:var(--muted);margin-top:3px}.messages{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:10px;background:linear-gradient(#fff,#fffaf8)}.day-label{text-align:center;font-size:11px;color:#9b9eaa;margin:8px}.bubble-row{display:flex}.bubble-row.mine{justify-content:flex-end}.bubble{max-width:min(75%,520px);padding:11px 14px;border-radius:16px;background:#f0f1f5;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.4}.mine .bubble{background:var(--pepper);color:#fff;border-bottom-right-radius:5px}.bubble .time{font-size:10px;opacity:.65;text-align:right;margin-top:5px}.composer{display:flex;gap:10px;padding:15px 18px;border-top:1px solid var(--line);align-items:center}.composer input{flex:1;min-width:0;border:1px solid var(--line);border-radius:14px;padding:13px 15px;outline:none}.composer input:focus{border-color:var(--pepper)}.logout{font-size:12px;padding:8px 10px}
+@media(max-width:680px){.app{grid-template-columns:1fr;height:100dvh}.sidebar{border-right:0}.main{display:none}.app.chat-open .sidebar{display:none}.app.chat-open .main{display:flex}.side-top{padding:15px}.chat-head{padding:13px}.messages{padding:15px}.composer{padding:10px}.back{display:block!important}.brand{font-size:21px}}
+.back{display:none;background:#f4f5f8;padding:9px 12px}
+</style>
+</head>
+<body>
+<div id="auth" class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand"><div class="pepper">✦</div><span>Pepper Chat</span></div>
+    <h1 id="authTitle">Добро пожаловать!</h1><p class="sub" id="authSub">Войдите, чтобы продолжить общение.</p>
+    <form id="authForm">
+      <div id="usernameWrap" class="hidden"><label for="username">Имя пользователя</label><input class="field" id="username" minlength="3" maxlength="24" autocomplete="username" placeholder="например, pepper_user"></div>
+      <label for="email">Электронная почта</label><input class="field" id="email" type="email" autocomplete="email" required placeholder="you@example.com">
+      <label for="password">Пароль</label><input class="field" id="password" type="password" minlength="6" autocomplete="current-password" required placeholder="Минимум 6 символов">
+      <div id="authError" class="error hidden"></div><button id="authSubmit" class="primary wide" type="submit">Войти</button>
+    </form>
+    <div class="switch"><span id="switchText">Нет аккаунта?</span> <button class="link" id="switchMode" type="button">Зарегистрироваться</button></div>
+    <p class="hint" style="margin-top:20px">Для работы нужно один раз подключить проект Supabase в настройках ниже в файле index.html.</p>
+  </div>
+</div>
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="side-top">
+      <div class="side-head"><div class="brand"><div class="pepper">✦</div><span>Pepper Chat</span></div><button id="logout" class="soft logout">Выйти</button></div>
+      <div class="profile-mini"><div id="myAvatar" class="avatar">P</div><div style="min-width:0"><strong id="myName">Пользователь</strong><div class="small">Вы в сети</div></div></div>
+      <div style="height:17px"></div>
+      <input id="searchUsers" class="search" placeholder="🔎  Найти пользователя...">
+    </div>
+    <div class="section-label">ПОЛЬЗОВАТЕЛИ</div>
+    <div id="userList" class="user-list"></div>
+  </aside>
+  <main class="main">
+    <div id="welcome" class="welcome"><div><div class="welcome-emoji">🌶️</div><h2>Привет в Pepper Chat!</h2><p>Выбери пользователя слева, чтобы начать личную переписку. Сообщения будут сохраняться онлайн.</p></div></div>
+    <div id="chatPanel" class="hidden" style="display:flex;flex-direction:column;min-height:0;flex:1">
+      <div class="chat-head"><button id="backBtn" class="back">←</button><div id="chatAvatar" class="avatar">?</div><div><div id="chatName" class="name">Чат</div><div class="status">Личная переписка</div></div></div>
+      <div id="messages" class="messages"></div>
+      <form id="sendForm" class="composer"><input id="messageInput" maxlength="4000" autocomplete="off" placeholder="Написать сообщение..." required><button class="primary" type="submit">Отправить</button></form>
+    </div>
+  </main>
+</div>
+<script>
+/* ШАГ 1: Вставьте URL и anon/publishable key из Supabase → Project Settings → API. */
+const SUPABASE_URL = "ВСТАВЬТЕ_URL_ПРОЕКТА";
+const SUPABASE_ANON_KEY = "ВСТАВЬТЕ_ANON_ИЛИ_PUBLISHABLE_KEY";
+let db = null, currentUser = null, currentProfile = null, activeChat = null, activePartner = null, messageChannel = null, isSignup = false, userCache = [];
+const $ = id => document.getElementById(id);
+const configured = () => SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("ВСТАВЬТЕ") && SUPABASE_ANON_KEY.length > 20 && !SUPABASE_ANON_KEY.includes("ВСТАВЬТЕ");
+function showError(message){$('authError').textContent=message;$('authError').classList.remove('hidden')}
+function friendlyError(e){return e?.message || "Что-то пошло не так. Проверь подключение и настройки."}
+function initials(name){return (name||"?").trim().slice(0,1).toUpperCase()}
+function escapeText(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function showAuth(){ $('auth').classList.remove('hidden'); $('app').classList.add('hidden') }
+function showApp(){ $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); }
+function setAuthMode(signup){isSignup=signup;$('authTitle').textContent=signup?"Создать аккаунт":"Добро пожаловать!";$('authSub').textContent=signup?"Зарегистрируйся в Pepper Chat.":"Войди, чтобы продолжить общение.";$('usernameWrap').classList.toggle('hidden',!signup);$('username').required=signup;$('authSubmit').textContent=signup?"Зарегистрироваться":"Войти";$('switchText').textContent=signup?"Уже есть аккаунт?":"Нет аккаунта?";$('switchMode').textContent=signup?"Войти":"Зарегистрироваться";$('authError').classList.add('hidden')}
+$('switchMode').addEventListener('click',()=>setAuthMode(!isSignup));
+$('authForm').addEventListener('submit',async e=>{
+ e.preventDefault(); $('authError').classList.add('hidden');
+ if(!configured()){showError("Сначала вставь SUPABASE_URL и SUPABASE_ANON_KEY в index.html. Инструкция есть в README.txt.");return}
+ const email=$('email').value.trim(), password=$('password').value, username=$('username').value.trim();
+ $('authSubmit').disabled=true;
+ try{
+  if(isSignup){
+   if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw new Error("Имя: 3–24 символа, только латинские буквы, цифры и _.");
+   const {data,error}=await db.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;
+   if(!data.session){showError("Аккаунт создан! Проверь почту и подтверди регистрацию, затем войди.");setAuthMode(false)}
+  }else{const {error}=await db.auth.signInWithPassword({email,password});if(error)throw error}
+ }catch(err){showError(friendlyError(err))}finally{$('authSubmit').disabled=false}
+});
+$('logout').addEventListener('click',async()=>{if(db)await db.auth.signOut();});
+$('searchUsers').addEventListener('input',()=>renderUsers($('searchUsers').value));
+$('backBtn').addEventListener('click',()=>{$('app').classList.remove('chat-open');activeChat=null;activePartner=null;if(messageChannel)db.removeChannel(messageChannel);$('chatPanel').classList.add('hidden');$('welcome').classList.remove('hidden')});
+async function loadProfile(){
+ const {data,error}=await db.from('profiles').select('id,username').eq('id',currentUser.id).maybeSingle();
+ if(error)throw error;
+ if(!data)throw new Error("Профиль не найден. Проверь, что ты выполнил supabase_setup.sql.");
+ currentProfile=data;$('myName').textContent=data.username;$('myAvatar').textContent=initials(data.username);
+}
+async function loadUsers(){
+ const {data,error}=await db.from('profiles').select('id,username').neq('id',currentUser.id).order('username').limit(500);
+ if(error)throw error;userCache=data||[];renderUsers($('searchUsers').value);
+}
+function renderUsers(query=""){
+ const q=query.trim().toLowerCase(), list=userCache.filter(u=>u.username.toLowerCase().includes(q));
+ $('userList').innerHTML=list.length?list.map(u=>`<button class="user-item ${activePartner?.id===u.id?'active':''}" data-id="${u.id}"><div class="avatar">${escapeText(initials(u.username))}</div><div class="details"><strong>${escapeText(u.username)}</strong><span class="preview">Нажми, чтобы написать</span></div></button>`).join(''):'<p class="hint" style="padding:10px">Пользователи не найдены. Попроси друга зарегистрироваться.</p>';
+ $('userList').querySelectorAll('[data-id]').forEach(b=>b.addEventListener('click',()=>openChat(b.dataset.id)));
+}
+async function openChat(partnerId){
+ const partner=userCache.find(u=>u.id===partnerId);if(!partner)return;
+ try{
+  const {data:chatId,error}=await db.rpc('start_direct_chat',{other_user_id:partnerId});if(error)throw error;
+  activeChat=chatId;activePartner=partner;$('chatName').textContent=partner.username;$('chatAvatar').textContent=initials(partner.username);
+  $('welcome').classList.add('hidden');$('chatPanel').classList.remove('hidden');$('app').classList.add('chat-open');renderUsers($('searchUsers').value);
+  await loadMessages();
+  if(messageChannel)db.removeChannel(messageChannel);
+  messageChannel=db.channel('chat-'+chatId).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+chatId},payload=>{
+    if(payload.new.sender_id!==currentUser.id)appendMessage(payload.new); 
+  }).subscribe();
+  $('messageInput').focus();
+ }catch(e){alert("Не удалось открыть чат: "+friendlyError(e))}
+}
+function appendMessage(m){
+ const box=$('messages');if(box.querySelector('[data-message="'+m.id+'"]'))return;
+ const mine=m.sender_id===currentUser.id, date=new Date(m.created_at);
+ const row=document.createElement('div');row.className='bubble-row'+(mine?' mine':'');row.dataset.message=m.id;
+ const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=m.body;
+ const time=document.createElement('div');time.className='time';time.textContent=date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});bubble.appendChild(time);row.appendChild(bubble);box.appendChild(row);box.scrollTop=box.scrollHeight;
+}
+async function loadMessages(){
+ $('messages').innerHTML='';
+ const {data,error}=await db.from('messages').select('id,conversation_id,sender_id,body,created_at').eq('conversation_id',activeChat).order('created_at',{ascending:true}).limit(500);
+ if(error)throw error;(data||[]).forEach(appendMessage);
+}
+$('sendForm').addEventListener('submit',async e=>{
+ e.preventDefault();const body=$('messageInput').value.trim();if(!body||!activeChat)return;
+ const input=$('messageInput');input.disabled=true;
+ try{const {data,error}=await db.from('messages').insert({conversation_id:activeChat,sender_id:currentUser.id,body}).select().single();if(error)throw error;appendMessage(data);input.value=''}
+ catch(err){alert("Сообщение не отправлено: "+friendlyError(err))}
+ finally{input.disabled=false;input.focus()}
+});
+async function start(){
+ if(!configured()){showAuth();return}
+ db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+ const {data:{session}}=await db.auth.getSession();
+ db.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>{if(session?.user){currentUser=session.user;bootApp().catch(e=>alert(friendlyError(e)))}else{currentUser=null;currentProfile=null;activeChat=null;showAuth()}},0)});
+ if(session?.user){currentUser=session.user;await bootApp()}else showAuth();
+}
+async function bootApp(){showApp();try{await loadProfile();await loadUsers()}catch(e){alert("Ошибка загрузки: "+friendlyError(e))}}
+start();
+</script>
+</body>
+</html>
